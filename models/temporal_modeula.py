@@ -23,20 +23,30 @@ class PositionalEncoding(nn.Module):
 
 
 class TemporalTransformer(nn.Module):
-    def __init__(self, in_channels=256, num_heads=8, num_layers=2, dropout=0.1):
+    def __init__(self, config):
         super().__init__()
-        self.in_channels = in_channels
-        self.embed_dim = in_channels  # 不改变通道数
+        temporal_config = config.get_temporal_config()
+        pos_encoding_config = temporal_config['positional_encoding']
+        
+        self.in_channels = temporal_config['in_channels']
+        self.embed_dim = self.in_channels  # 不改变通道数
+        
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.embed_dim,
-            nhead=num_heads,
+            nhead=temporal_config['num_heads'],
             dim_feedforward=2 * self.embed_dim,
-            dropout=dropout,
+            dropout=temporal_config['dropout'],
             activation='relu',
             batch_first=True
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.pos_encoder = PositionalEncoding(self.embed_dim)
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=temporal_config['num_layers']
+        )
+        self.pos_encoder = PositionalEncoding(
+            d_model=pos_encoding_config['d_model'],
+            max_len=pos_encoding_config['max_len']
+        )
 
     def forward(self, x):
         # x: [B, T, C, H, W]

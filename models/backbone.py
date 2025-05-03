@@ -57,23 +57,43 @@ class MultiScaleConv(nn.Module):
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, out_channels=256):
+    def __init__(self, config):
         super().__init__()
-        self.init_conv = ConvBNReLU(1, 64, kernel_size=7, stride=2)
+        backbone_config = config.get_backbone_config()
+        
+        # 从配置中获取参数
+        init_conv_config = backbone_config['init_conv']
+        multi_scale_config = backbone_config['multi_scale']
+        layer1_config = backbone_config['layer1']
+        layer2_config = backbone_config['layer2']
+        
+        self.init_conv = ConvBNReLU(
+            in_channels=init_conv_config['in_channels'],
+            out_channels=init_conv_config['out_channels'],
+            kernel_size=init_conv_config['kernel_size'],
+            stride=init_conv_config['stride']
+        )
 
-        self.multi_scale = MultiScaleConv(64, 64)
+        self.multi_scale = MultiScaleConv(
+            in_channels=multi_scale_config['in_channels'],
+            out_channels=multi_scale_config['out_channels']
+        )
 
-        # 模拟 ResNet 的前两层
         self.layer1 = nn.Sequential(
-            ResidualBlock(64, 128, stride=2),
-            ResidualBlock(128, 128)
+            ResidualBlock(layer1_config['in_channels'], layer1_config['out_channels'], stride=2),
+            ResidualBlock(layer1_config['out_channels'], layer1_config['out_channels'])
         )
+        
         self.layer2 = nn.Sequential(
-            ResidualBlock(128, 256, stride=2),
-            ResidualBlock(256, 256)
+            ResidualBlock(layer2_config['in_channels'], layer2_config['out_channels'], stride=2),
+            ResidualBlock(layer2_config['out_channels'], layer2_config['out_channels'])
         )
 
-        self.out_proj = ConvBNReLU(256, out_channels, kernel_size=1)
+        self.out_proj = ConvBNReLU(
+            layer2_config['out_channels'],
+            backbone_config['out_channels'],
+            kernel_size=1
+        )
 
     def forward(self, x):
         x = self.init_conv(x)      # -> [B, 64, H/2, W/2]

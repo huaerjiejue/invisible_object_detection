@@ -40,13 +40,31 @@ class SimpleFPN(nn.Module):
 
 
 class DetectionModel(nn.Module):
-    def __init__(self, in_channels=256, num_classes=1, num_anchors=1):
+    def __init__(self, config):
         super().__init__()
-        self.fpn = SimpleFPN(in_channels=in_channels, fpn_channels=in_channels)
+        detector_config = config.get_detector_config()
+        fpn_config = detector_config['fpn']
+        
+        self.fpn = SimpleFPN(
+            in_channels=fpn_config['in_channels'],
+            fpn_channels=fpn_config['fpn_channels']
+        )
 
-        self.head1 = DetectionHead(in_channels, num_classes, num_anchors)
-        self.head2 = DetectionHead(in_channels, num_classes, num_anchors)
-        self.head3 = DetectionHead(in_channels, num_classes, num_anchors)
+        self.head1 = DetectionHead(
+            detector_config['in_channels'],
+            detector_config['num_classes'],
+            detector_config['num_anchors']
+        )
+        self.head2 = DetectionHead(
+            detector_config['in_channels'],
+            detector_config['num_classes'],
+            detector_config['num_anchors']
+        )
+        self.head3 = DetectionHead(
+            detector_config['in_channels'],
+            detector_config['num_classes'],
+            detector_config['num_anchors']
+        )
 
     def forward(self, x):
         f1, f2, f3 = self.fpn(x)               # 多尺度特征图
